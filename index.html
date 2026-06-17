@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="#8b5cf6" name="theme-color"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<title>Royyek Vault - Premium Cloud v8.4 (Multiple Vaults + Multi Profile)</title>
+<link href="manifest.json" rel="manifest"/>
+<link href="https://cdn-icons-png.flaticon.com/512/2910/2910805.png" rel="apple-touch-icon"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<link href="styles.css" rel="stylesheet"/></head>
+<body>
+<div class="toast-container" id="toast-container"></div>
+<!-- LAYAR PILIH PROFIL (LOGIN MULTI-PROFILE) -->
+<div class="lock-screen-modern" id="profileLoginScreen" style="display: none;">
+<div class="lock-bg-gradient"></div>
+<div class="lock-bg-particles"></div>
+<div class="lock-card" style="max-width: 420px;">
+<div class="lock-logo">
+<div class="logo-icon"><i class="fa-solid fa-users-gear"></i></div>
+<h2 class="logo-text">Pilih Akun</h2>
+<p class="logo-subtitle">Royyek Vault Multi-Profile</p>
+</div>
+<div id="profile-list-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;"></div>
+<button class="btn-pro" onclick="showAddProfileForm()" style="width: 100%; justify-content: center; margin-bottom: 12px;">
+<i class="fa-solid fa-user-plus"></i> Tambah Akun Baru
+    </button>
+<div id="add-profile-form" style="display: none; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; margin-top: 10px;">
+<input class="form-input" id="new-profile-name" placeholder="Nama Pengguna (misal: Bos Kantor)" style="margin-bottom: 10px;" type="text"/>
+<input class="form-input" id="new-profile-url" placeholder="URL AppScript (https://.../exec)" style="margin-bottom: 10px; font-family: var(--font-standar-mono); font-size: 12px;" type="text"/>
+<div style="display: flex; gap: 8px;">
+<button class="btn-pro" onclick="saveNewProfile()" style="flex: 1; justify-content: center; font-size: 13px; padding: 10px;">
+<i class="fa-solid fa-save"></i> Simpan
+        </button>
+<button onclick="hideAddProfileForm()" style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--slate-300); border-radius: 8px; font-size: 13px; cursor: pointer;">
+          Batal
+        </button>
+</div>
+</div>
+</div>
+</div>
+<div class="lock-screen-modern" id="lockScreen">
+<div class="lock-bg-gradient"></div>
+<div class="lock-bg-particles"></div>
+<div class="lock-card" id="lockCard">
+<div class="lock-logo">
+<div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+<h2 class="logo-text">Royyek Vault</h2>
+<p class="logo-subtitle">Premium Cloud Security v8.4</p>
+</div>
+<div class="pin-section">
+<label class="pin-label">Masukkan PIN Keamanan</label>
+<div class="pin-input-wrapper">
+<input autocomplete="one-time-code" class="pin-input-modern" id="master-pin" inputmode="numeric" maxlength="4" oninput="handlePinInput(this)" placeholder="••••" type="tel"/>
+<div class="pin-dots" id="pinDots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+</div>
+<p class="pin-error" id="pin-error"><i class="fa-solid fa-circle-exclamation"></i> PIN salah</p>
+<button class="forgot-btn" onclick="showRecoveryHint()"><i class="fa-solid fa-question-circle"></i> Lupa PIN?</button>
+</div>
+<div class="biometric-section">
+<button class="bio-btn" onclick="simulateBiometric()"><i class="fa-solid fa-fingerprint"></i><span>Face ID / Fingerprint</span></button>
+</div>
+<div class="lock-feedback" id="lockFeedback"><div class="feedback-spinner"></div><span class="feedback-text">Memverifikasi...</span></div>
+</div>
+<div class="lock-footer">
+<p><i class="fa-solid fa-lock"></i> Enkripsi end-to-end</p>
+<p>v8.4 • Multiple Vaults</p>
+</div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
+<div class="sidebar" id="sidebarMenu">
+<div class="sidebar-header">
+<span style="font-weight:700;"><i class="fa-solid fa-shield-halved" style="color: var(--accent-color);"></i> Royyek Menu</span>
+<button class="close-sidebar-btn" onclick="toggleSidebar(false)"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="sidebar-profile">
+<div class="profile-avatar" id="profile-avatar-initial">R</div>
+<div class="profile-info">
+<span class="profile-name" id="sidebar-profile-name">Royyek User</span>
+<span class="profile-status"><i class="fa-solid fa-crown"></i> Premium Admin</span>
+</div>
+</div>
+<div class="sidebar-menu">
+<div class="sidebar-item" onclick="toggleSidebar(false); openProfileModal()"><i class="fa-solid fa-user-circle"></i> Profil Akun</div>
+<div class="sidebar-item danger" onclick="logoutProfile()"><i class="fa-solid fa-right-from-bracket"></i> Keluar / Ganti Akun</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); navigateToRoot(); gantiTabMenu('beranda', document.getElementById('tab-beranda'))"><i class="fa-solid fa-vault"></i> Beranda</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); navigateToRoot(); gantiTabMenu('catatan', document.getElementById('tab-catatan'))"><i class="fa-solid fa-note-sticky"></i> Catatan</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); notesLoaded=false; fetchData()"><i class="fa-solid fa-rotate"></i> Sync Cloud</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); bukaBackupRestore()"><i class="fa-solid fa-database"></i> Backup &amp; Restore</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); bukaDatabaseSettings()"><i class="fa-solid fa-link"></i> Pengaturan Database</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); openQuickActionsCustomizer()"><i class="fa-solid fa-sliders"></i> Custom Aksi Cepat</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); bukaSettingsPin()"><i class="fa-solid fa-key"></i> Pengaturan PIN</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); openVaultManager()"><i class="fa-solid fa-boxes-stacked"></i> Kelola Brankas</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); toggleFullscreen()"><i class="fa-solid fa-expand" id="sidebarFullscreenIcon"></i> Layar Penuh</div>
+<div class="sidebar-item danger" onclick="kunciBrankasMendadak()"><i class="fa-solid fa-lock"></i> Kunci Brankas</div>
+<div class="sidebar-item" onclick="toggleSidebar(false); bukaQueueManager()"><i class="fa-solid fa-clock-rotate-left"></i> Antrian Sync</div>
+</div>
+</div>
+<div class="app-container">
+<div class="sticky-top-section">
+<div class="sticky-header-wrapper">
+<div class="header">
+<div class="header-title-area">
+<button class="menu-toggle-btn" onclick="toggleSidebar(true)"><i class="fa-solid fa-bars"></i></button>
+<div>
+<h1>Royyek Vault</h1>
+<div class="subtitle"><i class="fa-solid fa-cloud"></i> Cloud Synced v8.4</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+<div style="display:flex;align-items:center;gap:8px;">
+<span class="sync-status-dot offline" id="sync-status"><i class="fa-solid fa-wifi-slash"></i><span>Offline</span></span>
+<button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleThemeMode()"><i class="fa-solid fa-moon"></i></button>
+</div>
+<div class="vault-selector-wrapper">
+<button class="vault-selector-btn" onclick="toggleVaultDropdown(event)">
+<i class="fa-solid fa-shield-halved"></i>
+<span id="current-vault-name-display">Brankas Utama</span>
+<i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+</button>
+<div class="vault-dropdown" id="vaultDropdown"></div>
+</div>
+</div>
+</div>
+<div class="controls">
+<div class="search-box" id="searchBoxContainer">
+<input autocomplete="off" id="vault-search" onfocus="liveSearchDropdown()" oninput="liveSearchDropdown()" placeholder="Cari aplikasi, kategori, catatan..." type="text"/>
+<i class="fa-solid fa-search"></i>
+<button class="clear-search-btn" id="clearSearchBtn" onclick="resetPencarian()"><i class="fa-solid fa-circle-xmark"></i></button>
+<div class="search-dropdown-results" id="searchDropdownContainer"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="new-dashboard-container" id="new-dashboard-view" style="display: none;">
+<div class="welcome-banner">
+<div class="welcome-text">
+<h2>Selamat Datang, <span id="user-greeting">Royyek User</span> 👋</h2>
+<p>Brankas digital Anda aman dan terenkripsi.</p>
+</div>
+<div class="welcome-icon"><i class="fa-solid fa-shield-halved"></i></div>
+</div>
+<div class="kpi-grid-enhanced">
+<div class="kpi-card-enhanced kpi-accent-1">
+<div class="kpi-icon"><i class="fa-solid fa-key"></i></div>
+<div class="kpi-info"><span class="kpi-label">Total Akun</span><span class="kpi-value" id="dash-total-akun">0</span></div>
+</div>
+<div class="kpi-card-enhanced kpi-accent-2">
+<div class="kpi-icon"><i class="fa-solid fa-note-sticky"></i></div>
+<div class="kpi-info"><span class="kpi-label">Total Catatan</span><span class="kpi-value" id="dash-total-catatan">0</span></div>
+</div>
+<div class="kpi-card-enhanced kpi-accent-3">
+<div class="kpi-icon"><i class="fa-solid fa-folder-tree"></i></div>
+<div class="kpi-info"><span class="kpi-label">Kategori</span><span class="kpi-value" id="dash-total-kategori">0</span></div>
+</div>
+<div class="kpi-card-enhanced kpi-accent-4">
+<div class="kpi-icon"><i class="fa-solid fa-star"></i></div>
+<div class="kpi-info"><span class="kpi-label">Favorit</span><span class="kpi-value" id="dash-total-favorit">0</span></div>
+</div>
+</div>
+<div class="quick-actions-section">
+<h3 class="section-title"><i class="fa-solid fa-bolt"></i> Aksi Cepat <button onclick="openQuickActionsCustomizer()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-size:12px;margin-left:8px;"><i class="fa-solid fa-sliders"></i></button></h3>
+<div class="quick-actions-grid" id="quick-actions-grid"></div>
+</div>
+<div class="recent-activity-section">
+<h3 class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> Terakhir Ditambahkan</h3>
+<div class="recent-list" id="recent-activity-list"><p class="empty-state">Memuat data...</p></div>
+</div>
+</div>
+<div id="old-kpi-view" style="display: none;">
+<div class="kpi-grid">
+<div class="kpi-card"><p class="kpi-label" id="kpi-label-1">Total Akun</p><div class="kpi-value" id="dash-total">0</div></div>
+<div class="kpi-card"><p class="kpi-label" id="kpi-label-2">Total Kategori</p><div class="kpi-value" id="dash-cats">0</div></div>
+</div>
+<h2 class="nama-menu-h2" id="nama-menu-halaman"><i class="fa-solid fa-vault"></i><span>Beranda</span></h2>
+</div>
+<div id="breadcrumbs-wrapper"></div>
+<div class="account-list" id="account-list-container">
+<p style="text-align: center; color: var(--slate-500); font-size: 15px; padding: 20px;">Memuat database...</p>
+</div>
+</div>
+<div class="floating-popup-menu" id="floating-menu">
+<div class="floating-popup-item" onclick="bukaMenuTambah()"><i class="fa-solid fa-key" style="color: var(--accent-color);"></i> Tambah Akun</div>
+<div class="floating-popup-item" id="floating-note-btn" onclick="bukaMenuTambahNote()" style="display:none;"><i class="fa-solid fa-note-sticky" style="color: var(--accent-color);"></i> Tambah Catatan</div>
+</div>
+<div class="more-menu-overlay" id="moreMenuOverlay" onclick="closeMoreMenu()"></div>
+<div class="more-menu" id="moreMenu" style="display:none;"></div>
+<div class="context-menu-overlay" id="contextMenuOverlay" onclick="closeContextMenu()">
+<div class="context-menu" id="contextMenu" onclick="event.stopPropagation()"></div>
+</div>
+<div class="folder-picker-overlay" id="folderPickerOverlay" onclick="if(event.target===this) closeFolderPicker()">
+<div class="folder-picker-card" onclick="event.stopPropagation()">
+<div class="picker-header">
+<div class="picker-title"><i class="fa-solid fa-folder-tree"></i> <span id="picker-title-text">Pilih Folder Tujuan</span></div>
+<div class="picker-subtitle" id="picker-subtitle-text">Navigasi untuk memilih folder</div>
+</div>
+<div class="picker-breadcrumbs" id="picker-breadcrumbs"></div>
+<div class="picker-current-path" id="picker-current-path-display">
+<i class="fa-solid fa-location-dot"></i>
+<span id="picker-current-path-text">/</span>
+</div>
+<div class="picker-body" id="picker-body"></div>
+<div class="picker-new-folder">
+<input id="picker-new-folder-input" placeholder="Nama subfolder baru..." type="text"/>
+<button class="picker-new-folder-btn" onclick="createNewFolderInPicker()"><i class="fa-solid fa-plus"></i> Buat</button>
+</div>
+<div class="picker-footer">
+<button class="picker-btn picker-btn-cancel" onclick="closeFolderPicker()">Batal</button>
+<button class="picker-btn picker-btn-select" onclick="confirmFolderPick()"><i class="fa-solid fa-check"></i> Pilih di sini</button>
+</div>
+</div>
+</div>
+<div class="premium-dock-bottom">
+<nav class="bottom-nav">
+<div class="nav-item active" id="tab-beranda" onclick="navigateToRoot(); gantiTabMenu('beranda', this)"><i class="fa-solid fa-vault"></i><span>Beranda</span></div>
+<div class="nav-item" id="tab-kerja" onclick="navigateToRoot(); gantiTabMenu('kerja', this)"><i class="fa-solid fa-briefcase"></i><span>Kerja</span></div>
+<div class="nav-center-container">
+<button class="nav-center-btn" onclick="bukaInputLangsung()"><i class="fa-solid fa-plus"></i></button>
+</div>
+<div class="nav-item" id="tab-catatan" onclick="navigateToRoot(); gantiTabMenu('catatan', this)"><i class="fa-solid fa-note-sticky"></i><span>Catatan</span></div>
+<div class="nav-item" id="tab-favorit" onclick="navigateToRoot(); gantiTabMenu('favorit', this)"><i class="fa-solid fa-star"></i><span>Favorit</span></div>
+</nav>
+</div>
+<!-- MODAL QUICK ACTIONS CUSTOMIZER -->
+<div class="modal-overlay" id="quickActionsModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-sliders"></i> Custom Aksi Cepat</h3>
+<p style="font-size:12px; color:var(--slate-500); margin-bottom:16px;">Pilih dan atur tombol aksi cepat yang ingin ditampilkan di dashboard</p>
+<div id="quick-actions-custom-list" style="max-height:400px; overflow-y:auto; padding-right:4px;"></div>
+<div style="display:flex; gap:12px; margin-top:20px;">
+<button class="btn-pro" onclick="saveQuickActionsCustom()" style="flex-grow:1; justify-content:center;" type="button"><i class="fa-solid fa-save"></i> Simpan</button>
+<button onclick="closeQuickActionsCustomizer()" style="color:var(--slate-500); background:none; border:none; padding:0 16px;" type="button">Batal</button>
+</div>
+</div>
+</div>
+<!-- MODAL DATABASE SETTINGS -->
+<div class="modal-overlay" id="databaseModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-database"></i> Pengaturan Database</h3>
+<div style="background: rgba(139, 92, 246, 0.08); border: 1px solid var(--card-border-custom); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+<p style="font-size:12px; color:var(--slate-500); margin-bottom:8px;"><i class="fa-solid fa-info-circle" style="color:var(--cyan);"></i> Masukkan URL Google Apps Script untuk sinkronisasi data</p>
+</div>
+<div style="margin-bottom:16px;">
+<label style="display:block; font-size:13px; font-weight:600; color:var(--slate-300); margin-bottom:8px;"><i class="fa-solid fa-link" style="color:var(--cyan); margin-right:6px;"></i> URL AppScript</label>
+<input class="form-input" id="db-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:var(--font-standar-mono); font-size:13px;" type="text" value=""/>
+</div>
+<div id="db-connection-status" style="margin-bottom:16px; display:none;">
+<div class="sync-status-dot online" style="display:flex; align-items:center; gap:8px; padding:10px 14px;">
+<i class="fa-solid fa-check-circle"></i><span id="db-status-text">Terhubung</span>
+</div>
+</div>
+<div style="display:flex; gap:12px; margin-top:20px;">
+<button class="btn-pro" onclick="saveDatabaseURL()" style="flex-grow:1; justify-content:center;" type="button"><i class="fa-solid fa-save"></i> Simpan &amp; Hubungkan</button>
+<button onclick="closeDatabaseModal()" style="color:var(--slate-500); background:none; border:none; padding:0 16px;" type="button">Batal</button>
+</div>
+<div style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--card-border-custom);">
+<p style="font-size:11px; color:var(--slate-500); margin-bottom:6px;">Database saat ini:</p>
+<p id="current-db-url" style="font-size:12px; font-family:var(--font-standar-mono); color:var(--cyan); word-break:break-all;">Belum terhubung</p>
+</div>
+</div>
+</div>
+<!-- MODAL BACKUP & RESTORE -->
+<div class="modal-overlay" id="exportModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-database"></i> Backup &amp; Restore</h3>
+<div class="backup-stats">
+<div class="backup-stat-card"><div class="backup-stat-value" id="export-total-akun">0</div><div class="backup-stat-label">Akun</div></div>
+<div class="backup-stat-card"><div class="backup-stat-value" id="export-total-catatan">0</div><div class="backup-stat-label">Catatan</div></div>
+</div>
+<p style="font-size:13px; color:var(--slate-300); margin-bottom:12px; font-weight:600;">Pilih kategori yang ingin di-backup:</p>
+<div class="backup-select-all" onclick="toggleSelectAllExport()">
+<span class="backup-select-all-text"><i class="fa-solid fa-check-double"></i> Pilih Semua</span>
+<span class="backup-select-all-count" id="export-selected-count">0 dipilih</span>
+</div>
+<div id="export-category-list" style="max-height:250px; overflow-y:auto; padding-right:4px;"></div>
+<div style="margin:16px 0 12px 0;">
+<label style="font-size:13px; font-weight:600; color:var(--slate-300); margin-bottom:6px; display:block;">Format File Ekspor:</label>
+<select class="form-input" id="export-format" onchange="toggleExportHint(this.value)" style="margin-bottom:0;">
+<option value="json">JSON (Disarankan untuk Backup Penuh &amp; Enkripsi)</option>
+<option value="csv">CSV (Excel / Spreadsheet)</option>
+<option value="pdf">PDF (Laporan / Read-Only)</option>
+</select>
+</div>
+<div class="backup-password-wrapper" id="export-pass-wrapper">
+<input class="backup-password-input" id="export-password" placeholder="🔒 Password enkripsi (opsional)" type="password"/>
+<button class="backup-password-toggle" onclick="toggleExportPassword()"><i class="fa-solid fa-eye" id="export-pass-eye"></i></button>
+</div>
+<div class="backup-hint" id="export-hint-json"><i class="fa-solid fa-circle-info"></i> <span>Kosongkan password jika tidak perlu enkripsi. File akan berformat JSON.</span></div>
+<div class="backup-hint" id="export-hint-other" style="display:none;"><i class="fa-solid fa-circle-info"></i> <span>Format CSV/PDF tidak mendukung enkripsi password dan akan diekspor sebagai data terbuka (plain text).</span></div>
+<div style="display:flex; gap:12px; margin-top:15px;">
+<button class="btn-pro" onclick="bukaImportModal()" style="flex-grow:1; justify-content:center; background: linear-gradient(135deg, #06b6d4, #0891b2);" type="button"><i class="fa-solid fa-file-import"></i> Restore</button>
+<button class="btn-pro" onclick="doExport()" style="flex-grow:1; justify-content:center;" type="button"><i class="fa-solid fa-download"></i> Backup</button>
+</div>
+<div style="text-align:center; margin-top:12px;">
+<button onclick="closeExportModal()" style="color:var(--slate-500); background:none; border:none; font-size:13px;" type="button">Tutup</button>
+</div>
+</div>
+</div>
+<!-- MODAL IMPORT -->
+<div class="modal-overlay" id="importModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-file-import"></i> Import Backup</h3>
+<div id="import-step-1">
+<p style="font-size:13px; color:var(--slate-300); margin-bottom:12px;">Pilih file backup dari HP Anda:</p>
+<input accept=".json,application/json,.csv,text/csv" id="import-file-input" onchange="handleImportFile(event)" style="display:none" type="file"/>
+<button class="btn-pro" onclick="document.getElementById('import-file-input').click()" style="width:100%; justify-content:center; padding:16px;">
+<i class="fa-solid fa-folder-open"></i> Pilih File Backup
+</button>
+<p style="font-size:12px; color:var(--slate-500); margin-top:12px; text-align:center;"><i class="fa-solid fa-info-circle"></i> Format didukung: JSON (Penuh), CSV (Terstruktur).</p>
+</div>
+<div id="import-step-2" style="display:none;">
+<div class="import-file-info">
+<div class="import-file-icon"><i class="fa-solid fa-file-code"></i></div>
+<div class="import-file-details">
+<div class="import-file-name" id="import-file-name">backup.json</div>
+<div class="import-file-size" id="import-file-size">0 KB</div>
+</div>
+</div>
+<div id="import-password-section" style="display:none; margin-bottom:12px;">
+<p style="font-size:12px; color:var(--slate-300); margin-bottom:6px;">🔒 File terenkripsi. Masukkan password:</p>
+<input class="form-input" id="import-password" placeholder="Password backup" style="margin-bottom:0;" type="password"/>
+</div>
+<div id="import-category-selection" style="display:none; margin-bottom:12px;">
+<p style="font-size:13px; color:var(--slate-300); margin-bottom:8px; font-weight:600;">Pilih kategori yang ingin di-import:</p>
+<div class="backup-select-all" onclick="toggleSelectAllImport()">
+<span class="backup-select-all-text"><i class="fa-solid fa-check-double"></i> Pilih Semua</span>
+<span class="backup-select-all-count" id="import-selected-count">0 dipilih</span>
+</div>
+<div id="import-category-list" style="max-height:200px; overflow-y:auto; padding-right:4px;"></div>
+</div>
+<div id="import-preview" style="display:none; max-height:200px; overflow-y:auto; margin-bottom:12px;"></div>
+<div style="display:flex; gap:12px;">
+<button class="btn-pro" onclick="doImport()" style="flex-grow:1; justify-content:center;" type="button"><i class="fa-solid fa-upload"></i> Import</button>
+<button onclick="closeImportModal()" style="color:var(--slate-500); background:none; border:none;" type="button">Batal</button>
+</div>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="entryModal">
+<div class="modal">
+<h3 id="modal-title" style="margin-bottom:15px; color:var(--accent-color);">Kredensial Baru</h3>
+<form id="account-form">
+<input id="entry-id" type="hidden"/>
+<div class="kategori-input-wrapper">
+<input class="kategori-input" id="kategori-input" placeholder="Ketik atau pilih kategori..." type="text"/>
+<button class="kategori-dropdown-btn" onclick="bukaCustomDropdownLayer()" type="button"><i class="fa-solid fa-caret-down"></i></button>
+</div>
+<input class="form-input" id="entry-app" placeholder="Nama Aplikasi" type="text"/>
+<input class="form-input" id="entry-username" placeholder="Username" type="text"/>
+<input class="form-input" id="entry-email" placeholder="Email" type="text"/>
+<input class="form-input" id="entry-password" placeholder="Password" type="text"/>
+<input class="form-input" id="entry-ket" placeholder="Keterangan 1" type="text"/>
+<input class="form-input" id="entry-ket-dua" placeholder="Keterangan 2" type="text"/>
+<div style="display:flex; gap:12px; margin-top:15px;">
+<button class="btn-pro" onclick="submitData()" style="flex-grow:1; justify-content:center;" type="button">Simpan</button>
+<button onclick="closeModal()" style="color:var(--slate-500); background:none; border:none;" type="button">Batal</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="noteModal">
+<div class="modal">
+<h3 id="note-modal-title" style="margin-bottom:15px; color:var(--accent-color);">Catatan Baru</h3>
+<form id="note-form">
+<input id="note-id" type="hidden"/>
+<div class="kategori-input-wrapper">
+<input class="kategori-input" id="note-kategori-input" placeholder="Ketik atau pilih kategori..." type="text"/>
+<button class="kategori-dropdown-btn" onclick="bukaCustomDropdownLayer('notes')" type="button"><i class="fa-solid fa-caret-down"></i></button>
+</div>
+<input class="form-input" id="note-judul" placeholder="Judul Catatan *" required="" type="text"/>
+<textarea class="form-input" id="note-isi" placeholder="Isi catatan..."></textarea>
+<div style="display:flex; gap:12px; margin-top:15px;">
+<button class="btn-pro" onclick="submitNoteData()" style="flex-grow:1; justify-content:center;" type="button">Simpan</button>
+<button onclick="closeNoteModal()" style="color:var(--slate-500); background:none; border:none;" type="button">Batal</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="pinSettingsModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-key"></i> Pengaturan PIN</h3>
+<div class="toggle-row">
+<span class="toggle-label"><i class="fa-solid fa-lock-open" style="color:var(--slate-500);"></i> Aktifkan PIN</span>
+<label class="switch"><input id="pin-toggle" type="checkbox"/><span class="slider"></span></label>
+</div>
+<form id="pin-form">
+<input class="form-input" id="pin-current" inputmode="numeric" maxlength="4" placeholder="PIN Saat Ini" style="text-align:center; letter-spacing:8px; font-size:18px;" type="tel"/>
+<input class="form-input" id="pin-new" inputmode="numeric" maxlength="4" placeholder="PIN Baru" style="text-align:center; letter-spacing:8px; font-size:18px;" type="tel"/>
+<input class="form-input" id="pin-confirm" inputmode="numeric" maxlength="4" placeholder="Konfirmasi" style="text-align:center; letter-spacing:8px; font-size:18px;" type="tel"/>
+<p id="pin-settings-error" style="color:#ef4444; font-size:13px; margin:8px 0; display:none;"></p>
+<div style="display:flex; gap:12px; margin-top:15px;">
+<button class="btn-pro" onclick="submitPinChange()" style="flex-grow:1; justify-content:center;" type="button">Update</button>
+<button onclick="closePinSettings()" style="color:var(--slate-500); background:none; border:none;" type="button">Batal</button>
+</div>
+</form>
+</div>
+</div>
+<div class="dropdown-modal-layer" id="dropdownLayerModal" onclick="tutupCustomDropdownLayer()">
+<div class="dropdown-card" onclick="event.stopPropagation()">
+<div class="dropdown-options-list" id="custom-options-container"></div>
+<div onclick="pilihKategoriBuatBaru()" style="padding:15px; color:var(--accent-color); cursor:pointer; font-weight:600; border-top: 1px dashed var(--card-border-custom);">+ Buat Kategori Baru...</div>
+</div>
+</div>
+<div class="account-detail-popup" id="accountDetailPopup" onclick="if(event.target===this) closeAccountDetailPopup()">
+<div class="popup-card">
+<div class="popup-header">
+<div class="popup-title"><i class="fa-solid fa-shield-keyhole"></i><span id="popup-app-name">Nama</span></div>
+<button class="popup-close" onclick="closeAccountDetailPopup()"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="popup-body" id="popup-body-content"></div>
+<div class="popup-footer-modern">
+<button class="popup-btn-modern edit" id="popup-btn-edit" onclick="editFromPopup()"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+<button class="popup-btn-modern delete" id="popup-btn-delete" onclick="deleteFromPopup()"><i class="fa-solid fa-trash-can"></i> Hapus</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="queueModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-clock-rotate-left"></i> Antrian Sync</h3>
+<div id="queue-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+<div style="display:flex; gap:10px; margin-top:10px;">
+<button class="btn-pro" onclick="retryAllQueue()" style="flex:1; justify-content:center;"><i class="fa-solid fa-rotate"></i> Kirim Ulang</button>
+<button class="btn-pro" onclick="clearAllQueue()" style="flex:1; justify-content:center; background:var(--delete-btn-bg); color:var(--delete-btn-text);"><i class="fa-solid fa-trash"></i> Hapus</button>
+</div>
+<button onclick="closeQueueModal()" style="width:100%; margin-top:12px; color:var(--slate-500); background:none; border:none;" type="button">Tutup</button>
+</div>
+</div>
+<div class="modal-overlay" id="vaultManagerModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-boxes-stacked"></i> Kelola Brankas</h3>
+<p style="font-size:12px; color:var(--slate-500); margin-bottom:16px;">Buat brankas terpisah untuk mengisolasi data. Setiap brankas bisa memiliki PIN tersendiri.</p>
+<div id="vault-list-container" style="max-height:300px; overflow-y:auto; margin-bottom:16px;"></div>
+<div style="display:flex; gap:8px; margin-bottom:16px;">
+<input class="form-input" id="new-vault-name" placeholder="Nama Brankas Baru" style="margin-bottom:0; flex:1;" type="text"/>
+<input class="form-input" id="new-vault-pin" maxlength="4" placeholder="PIN (Opsional)" style="margin-bottom:0; width:100px; text-align:center;" type="password"/>
+</div>
+<div style="display:flex; gap:12px;">
+<button class="btn-pro" onclick="createNewVault()" style="flex-grow:1; justify-content:center;" type="button"><i class="fa-solid fa-plus"></i> Buat Brankas</button>
+<button onclick="closeVaultManager()" style="color:var(--slate-500); background:none; border:none; padding:0 16px;" type="button">Tutup</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="transferVaultModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-arrow-right-arrow-left"></i> Pindahkan Data Brankas</h3>
+<div class="transfer-info-box">
+<div class="transfer-info-label"><i class="fa-solid fa-box-archive" style="color:var(--cyan);"></i> Data Sumber:</div>
+<div class="transfer-info-name" id="transfer-source-name"></div>
+<div class="transfer-info-stats">
+<span><i class="fa-solid fa-key" style="color:#8b5cf6;"></i> <span id="transfer-akun-count">0</span> Akun</span>
+<span><i class="fa-solid fa-note-sticky" style="color:#06b6d4;"></i> <span id="transfer-catatan-count">0</span> Catatan</span>
+</div>
+</div>
+<div style="margin-bottom:16px;">
+<label style="display:block; font-size:13px; font-weight:600; color:var(--slate-300); margin-bottom:8px;"><i class="fa-solid fa-arrow-right" style="color:var(--cyan); margin-right:6px;"></i> Pilih Brankas Tujuan:</label>
+<select class="transfer-target-select" id="transfer-target-select"></select>
+</div>
+<div class="transfer-warning">
+<div class="transfer-warning-text">
+<i class="fa-solid fa-triangle-exclamation" style="margin-top:2px; flex-shrink:0;"></i>
+<span>Semua data akan dipindahkan dari brankas sumber ke brankas tujuan. Brankas sumber akan menjadi <strong>kosong</strong> setelah proses ini.</span>
+</div>
+</div>
+<div style="display:flex; gap:12px; margin-top:20px;">
+<button class="btn-pro" onclick="executeTransferData()" style="flex-grow:1; justify-content:center; background:linear-gradient(135deg, #06b6d4, #0891b2);" type="button"><i class="fa-solid fa-arrow-right-arrow-left"></i> Pindahkan Sekarang</button>
+<button onclick="closeTransferModal()" style="color:var(--slate-500); background:none; border:none; padding:0 16px;" type="button">Batal</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="moveToVaultModal">
+<div class="modal" onclick="event.stopPropagation()">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-box-archive"></i> Pindahkan ke Brankas Lain</h3>
+<div class="transfer-info-box">
+<div class="transfer-info-label"><i class="fa-solid fa-info-circle" style="color:var(--cyan);"></i> Data yang akan dipindahkan:</div>
+<div class="transfer-info-name" id="move-target-name-display"></div>
+<div class="transfer-info-stats" id="move-target-stats-display"></div>
+</div>
+<div style="margin-bottom:16px;">
+<label style="display:block; font-size:13px; font-weight:600; color:var(--slate-300); margin-bottom:8px;"><i class="fa-solid fa-arrow-right" style="color:var(--cyan); margin-right:6px;"></i> Pilih Brankas Tujuan:</label>
+<select class="transfer-target-select" id="move-target-vault-select"></select>
+</div>
+<div class="transfer-warning">
+<div class="transfer-warning-text">
+<i class="fa-solid fa-triangle-exclamation" style="margin-top:2px; flex-shrink:0;"></i>
+<span>Data akan dipindahkan keluar dari brankas saat ini dan masuk ke brankas tujuan.</span>
+</div>
+</div>
+<div style="display:flex; gap:12px; margin-top:20px;">
+<button class="btn-pro" onclick="executeMoveToVault()" style="flex-grow:1; justify-content:center; background:linear-gradient(135deg, #06b6d4, #0891b2);" type="button"><i class="fa-solid fa-arrow-right"></i> Pindahkan Sekarang</button>
+<button onclick="closeMoveToVaultModal()" style="color:var(--slate-500); background:none; border:none; padding:0 16px;" type="button">Batal</button>
+</div>
+</div>
+</div>
+<!-- MODAL PROFIL AKUN -->
+<div class="modal-overlay" id="profileModal">
+<div class="modal">
+<h3 style="margin-bottom:15px; color:var(--accent-color);"><i class="fa-solid fa-user-circle"></i> Profil Akun &amp; Koneksi</h3>
+<div style="text-align:center; margin-bottom:20px;">
+<div id="profile-avatar-initial-modal" style="width:70px; height:70px; background:linear-gradient(135deg, var(--cyan), var(--blue)); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:28px; font-weight:700; margin:0 auto 10px; box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);">R</div>
+<input class="form-input" id="profile-name-input" placeholder="Nama Pengguna" style="text-align:center; font-size:18px; font-weight:700; margin-bottom:8px; padding:10px;" type="text"/>
+<span class="sync-status-dot offline" id="profile-sync-status" style="margin-top:8px; display:inline-flex;"><i class="fa-solid fa-wifi-slash"></i><span>Memuat...</span></span>
+</div>
+<div style="background:rgba(139, 92, 246, 0.08); border:1px solid var(--card-border-custom); border-radius:12px; padding:14px; margin-bottom:16px;">
+<p style="font-size:12px; color:var(--slate-500); margin:0 0 8px 0; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;"><i class="fa-solid fa-link" style="color:var(--cyan); margin-right:6px;"></i> URL AppScript Aktif</p>
+<p id="profile-db-url" style="font-size:13px; font-family:var(--font-standar-mono); color:var(--cyan); word-break:break-all; margin:0; line-height:1.4; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">Belum terhubung</p>
+</div>
+<div style="display:flex; gap:12px; margin-top:20px;">
+<button class="btn-pro" onclick="saveProfileData()" style="flex-grow:1; justify-content:center;" type="button"><i class="fa-solid fa-save"></i> Simpan Profil</button>
+<button onclick="closeProfileModal()" style="color:var(--slate-500); background:none; border:none; padding:0 16px; font-weight:600;" type="button">Tutup</button>
+</div>
+</div>
+</div>
+
+<!-- === FITUR TAP OUTSIDE TO CLOSE === -->
+
+<script src="app.js"></script></body>
+</html>
